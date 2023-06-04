@@ -39,49 +39,45 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.absoluteValue
 
 
-enum class EverYouthScreen(){
-    LoginPage,
-    MainMenuPage,
-    ProfilePage,
-    SearchPage,
-    FaceScannerPage,
-    FeedsPage,
-    ShortsPage,
-}
+
 
 @Composable
 fun EverYouthApp(){
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = EverYouthScreen.LoginPage.name) {
-        composable(EverYouthScreen.LoginPage.name) {
-            LoginPage(navController = navController)
+    NavHost(navController = navController, startDestination = "LoginPage") {
+        composable("LoginPage") {
+            LoginPage(navController = navController,
+                onLoginClick = { navController.navigate("${"MainMenuPage"}/{unameInput}")}
+                )
         }
-        composable("${EverYouthScreen.MainMenuPage.name}/{unameInput}") { backStackEntry ->
+        composable("${"MainMenuPage"}/{unameInput}") { backStackEntry ->
             MainMenuPage(username = backStackEntry.arguments?.getString("unameInput") ?: "",
-                onProfileClick = { navController.navigate(EverYouthScreen.ProfilePage.name)},
+                onProfileClick = { navController.navigate("ProfilePage")},
                 navController = navController,
             )
         }
-        composable(EverYouthScreen.ProfilePage.name){
-            ProfilePage()
+        composable("ProfilePage"){
+            ProfilePage(navController= navController)
         }
-        composable(EverYouthScreen.FeedsPage.name){
+        composable("FeedsPage"){
             FeedsPage(navController = navController)
         }
-        composable(EverYouthScreen.FaceScannerPage.name){
+        composable("FaceScannerPage"){
             FaceScannerPage(navController = navController)
         }
-        composable(EverYouthScreen.ShortsPage.name){
+        composable("ShortsPage"){
             ShortsPage(navController = navController)
         }
-        composable(EverYouthScreen.SearchPage.name){
+        composable("SearchPage"){
             SearchPage(navController = navController)
         }
     }
 }
 
 @Composable
-fun LoginPage(modifier: Modifier = Modifier, navController: NavController) {
+fun LoginPage(modifier: Modifier = Modifier, navController: NavController,
+              onLoginClick: () -> Unit
+              ) {
     var unameInput by remember { mutableStateOf("") }
     var passInput by remember { mutableStateOf("") }
 
@@ -110,9 +106,9 @@ fun LoginPage(modifier: Modifier = Modifier, navController: NavController) {
 
         TOSCaution()
 
-        LoginButton(onClick = {
+        LoginButton(onLoginClick = {
             navController.popBackStack()
-            navController.navigate("${EverYouthScreen.MainMenuPage.name}/$unameInput")})
+            navController.navigate("${"MainMenuPage"}/$unameInput")})
     }
 }
 
@@ -178,9 +174,9 @@ fun TOSCaution() {
 }
 
 @Composable
-fun LoginButton(onClick: () -> Unit){
+fun LoginButton(onLoginClick: () -> Unit){
     Button(
-        onClick = onClick,
+        onClick = onLoginClick,
         modifier = Modifier
             .width(200.dp)
             .height(60.dp)
@@ -197,6 +193,8 @@ fun MainMenuPage(
     navController: NavController,
 ){
     val imageScrollState = rememberLazyListState()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     val buttonScrollState = rememberLazyListState()
     val images = listOf(
         R.drawable.androidparty,
@@ -208,7 +206,7 @@ fun MainMenuPage(
 
     Scaffold (
         bottomBar = {
-            NavigationButtons(navController = navController)
+            NavigationButtons(navController = navController, currentRoute)
         }
             ) { contentPadding ->
         Column(
@@ -355,7 +353,9 @@ fun ScrollIndicator(
 }
 
 @Composable
-fun ProfilePage(){
+fun ProfilePage(navController: NavController){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -367,9 +367,11 @@ fun ProfilePage(){
 
 @Composable
 fun SearchPage(navController: NavController){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     Scaffold(
         bottomBar = {
-            NavigationButtons(navController = navController)
+            NavigationButtons(navController = navController, currentRoute)
         }
     ) {contentPadding ->
         Column(
@@ -385,9 +387,11 @@ fun SearchPage(navController: NavController){
 
 @Composable
 fun FaceScannerPage(navController: NavController){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     Scaffold(
         bottomBar = {
-            NavigationButtons(navController = navController)
+            NavigationButtons(navController = navController, currentRoute)
         }
     ) {contentPadding ->
         Column(
@@ -403,9 +407,11 @@ fun FaceScannerPage(navController: NavController){
 
 @Composable
 fun FeedsPage(navController: NavController){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     Scaffold(
         bottomBar = {
-            NavigationButtons(navController = navController)
+            NavigationButtons(navController = navController, currentRoute)
         }
     ) {contentPadding ->
         Column(
@@ -413,7 +419,7 @@ fun FeedsPage(navController: NavController){
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text (text = "Feeds is not yet available")
+            Text (text = "Feeds is not yet available ")
         }
     }
 
@@ -421,9 +427,11 @@ fun FeedsPage(navController: NavController){
 
 @Composable
 fun ShortsPage(navController: NavController){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     Scaffold(
         bottomBar = {
-            NavigationButtons(navController = navController)
+            NavigationButtons(navController = navController, currentRoute)
         }
     ) {contentPadding ->
         Column(
@@ -438,8 +446,8 @@ fun ShortsPage(navController: NavController){
 }
 
 @Composable
-fun NavigationButtons(navController: NavController){
-    val currentRoute = navController.currentBackStackEntry?.destination?.route
+fun NavigationButtons(navController: NavController, currentRoutePar: String?){
+    val currentRoute = currentRoutePar
 
     BottomNavigation(
         modifier = Modifier.fillMaxWidth(),
@@ -448,30 +456,28 @@ fun NavigationButtons(navController: NavController){
         BottomNavigationItem(
             icon = { /* Home icon */ },
             label = { Text(text = "Home") },
-            selected = currentRoute == EverYouthScreen.MainMenuPage.name,
+            selected = currentRoute == "${"MainMenuPage"}/{unameInput}",
             onClick ={
-                if (currentRoute != EverYouthScreen.MainMenuPage.name){
-                    navController.navigate(EverYouthScreen.MainMenuPage.name){
-                        popUpTo(EverYouthScreen.MainMenuPage.name){
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                if (currentRoute != "${"MainMenuPage"}/{unameInput}"){
+                    navController.popBackStack()
                 }
+                else {
 
+                }
             }
         )
 
         BottomNavigationItem(
             icon = { /* Feeds icon */ },
             label = { Text(text = "Feeds") },
-            selected = currentRoute == EverYouthScreen.FeedsPage.name,
+            selected = currentRoute == "FeedsPage",
             onClick = {
-                if (currentRoute != EverYouthScreen.FeedsPage.name) {
-                    navController.navigate(EverYouthScreen.FeedsPage.name){
-                        popUpTo(EverYouthScreen.MainMenuPage.name){
+                if (currentRoute != "FeedsPage") {
+                    navController.popBackStack(currentRoute ?: "", inclusive = false)
+                    navController.navigate("FeedsPage"){
+                        popUpTo("${"MainMenuPage"}/{unameInput}"){
                             saveState = true
+                            inclusive = false
                         }
                         launchSingleTop = true
                         restoreState = true
@@ -483,12 +489,13 @@ fun NavigationButtons(navController: NavController){
         BottomNavigationItem(
             icon = { /* Main feature icon */ },
             label = { Text(text = "Main Feature") },
-            selected = currentRoute == EverYouthScreen.FaceScannerPage.name,
+            selected = currentRoute == "FaceScannerPage",
             onClick = {
-                if (currentRoute != EverYouthScreen.FaceScannerPage.name) {
-                    navController.navigate(EverYouthScreen.FaceScannerPage.name){
-                        popUpTo(EverYouthScreen.MainMenuPage.name){
+                if (currentRoute != "FaceScannerPage") {
+                    navController.navigate("FaceScannerPage"){
+                        popUpTo("${"MainMenuPage"}/{unameInput}"){
                             saveState = true
+                            inclusive = false
                         }
                         launchSingleTop = true
                         restoreState = true
@@ -503,12 +510,13 @@ fun NavigationButtons(navController: NavController){
         BottomNavigationItem(
             icon = { /* Shorts icon */ },
             label = { Text(text = "Shorts") },
-            selected = currentRoute == EverYouthScreen.ShortsPage.name,
+            selected = currentRoute == "ShortsPage",
             onClick = {
-                if (currentRoute != EverYouthScreen.ShortsPage.name){
-                    navController.navigate(EverYouthScreen.ShortsPage.name){
-                        popUpTo(navController.graph.findStartDestination().id){
+                if (currentRoute != "ShortsPage"){
+                    navController.navigate("ShortsPage"){
+                        popUpTo("${"MainMenuPage"}/{unameInput}"){
                             saveState = true
+                            inclusive = false
                         }
                         launchSingleTop = true
                         restoreState = true
@@ -520,12 +528,13 @@ fun NavigationButtons(navController: NavController){
         BottomNavigationItem(
             icon = { },
             label = { Text(text = "Search") },
-            selected = currentRoute == EverYouthScreen.SearchPage.name,
+            selected = currentRoute == "SearchPage",
             onClick = {
-                if (currentRoute != EverYouthScreen.SearchPage.name){
-                    navController.navigate(EverYouthScreen.SearchPage.name){
-                        popUpTo(navController.graph.findStartDestination().id){
+                if (currentRoute != "SearchPage"){
+                    navController.navigate("SearchPage"){
+                        popUpTo("${"MainMenuPage"}/{unameInput}"){
                             saveState = true
+                            inclusive = false
                         }
                         launchSingleTop = true
                         restoreState = true
