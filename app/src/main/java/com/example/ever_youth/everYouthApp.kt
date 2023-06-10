@@ -1,5 +1,12 @@
 package com.example.ever_youth
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.util.Log
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,15 +24,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.ever_youth.ui.theme.Ever_YouthTheme
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -35,6 +47,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.compose.rememberImagePainter
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.absoluteValue
 
@@ -70,6 +83,13 @@ fun EverYouthApp(){
         }
         composable("SearchPage"){
             SearchPage(navController = navController)
+        }
+        composable("FaceAnalysisPage/{imageUri}"){
+            val imageUri = Uri.parse(navController.currentBackStackEntry?.arguments?.getString("imageUri"))
+            FaceAnalysisPage(navController = navController, capturedImageUri = imageUri)
+        }
+        composable("ShoppingPage"){
+            ShoppingPage(navController = navController)
         }
     }
 }
@@ -246,7 +266,7 @@ fun MainMenuPage(
             )
 
             // Swipable list of buttons
-            ButtonSection(scrollState = buttonScrollState)
+            ButtonSection(scrollState = buttonScrollState, navController)
         }
     }
 
@@ -293,7 +313,7 @@ fun ImageSection(images: List<Int>, scrollState: LazyListState) {
 }
 
 @Composable
-fun ButtonSection(scrollState: LazyListState) {
+fun ButtonSection(scrollState: LazyListState, navController: NavController) {
     LazyColumn(
         state = scrollState,
         modifier = Modifier.fillMaxWidth()
@@ -304,14 +324,18 @@ fun ButtonSection(scrollState: LazyListState) {
             Row(Modifier.fillMaxWidth()) {
                 rowItems.forEach { index ->
                     Button(
-                        onClick = { /*TODO*/ },
+                        onClick = {
+                            if (index == 0){
+                                navController.navigate("ShoppingPage")
+                            }
+                        },
                         modifier = Modifier
                             .padding(15.dp)
                             .clip(shape = RoundedCornerShape(12.dp))
                             .weight(1f)
                             .height(125.dp)
                     ) {
-                        Text(text = "Button $index")
+                        Text(text = if (index == 0)"SkinShop" else "Button $index")
                     }
                 }
             }
@@ -338,7 +362,7 @@ fun ScrollIndicator(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = indicatorHeight)
         ) {
-            for (i in 0 until itemCount) {
+            for (i in 0 until itemCount-1) {
                 val color = if (scrollState.absoluteValue == i) indicatorColor else inactiveIndicatorColor
                 Box(
                     modifier = Modifier
@@ -385,10 +409,19 @@ fun SearchPage(navController: NavController){
 
 }
 
+
 @Composable
 fun FaceScannerPage(navController: NavController){
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+
+    var capturedImageUri by remember { mutableStateOf<Uri?>(null)}
+
+    val onImageCaptured: (Uri) -> Unit = { uri ->
+        capturedImageUri = uri
+        navController.navigate("FaceAnalysisPage/${uri.toString()}")
+    }
+
     Scaffold(
         bottomBar = {
             NavigationButtons(navController = navController, currentRoute)
@@ -399,11 +432,34 @@ fun FaceScannerPage(navController: NavController){
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text (text = "Face Scanner is not yet available")
+            CameraContent(onImageCaptured)
         }
     }
 
 }
+
+@Composable
+fun FaceAnalysisPage(navController: NavController, capturedImageUri: Uri?){
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
+
+    if (capturedImageUri != null) {
+        Image(
+            modifier = Modifier
+                .padding(16.dp, 8.dp),
+            painter = rememberImagePainter(capturedImageUri),
+            contentDescription = null
+        )
+    } else {
+        Text("no image captured")
+    }
+
+    
+}
+
+
+
 
 @Composable
 fun FeedsPage(navController: NavController){
@@ -442,7 +498,65 @@ fun ShortsPage(navController: NavController){
         Text (text = "Shorts is not yet available")
     }
     }
+}
 
+@Composable
+fun ShoppingPage(navController: NavController){
+    Column(Modifier.fillMaxSize()) {
+        // Page Title
+        Text(
+            text = "SkinShop",
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.CenterHorizontally),
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        )
+
+        // Scrollable Section
+        LazyColumn(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            items(10) { index ->
+                ShoppingItem(
+                    imageResId = R.drawable.androidparty, // Replace with your image resource ID
+                    productName = "Product $index",
+                    productPrice = "$${index * 10}"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShoppingItem(imageResId: Int, productName: String, productPrice: String) {
+    Column(
+        Modifier
+            .padding(vertical = 8.dp)
+            .fillMaxWidth()
+    ) {
+        // Big Image
+        Image(
+            painter = painterResource(imageResId),
+            contentDescription = "Product Image",
+            modifier = Modifier
+                .height(200.dp)
+                .fillMaxWidth()
+                .clip(shape = RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop
+        )
+
+        // Product Name
+        Text(
+            text = productName,
+            modifier = Modifier.padding(top = 8.dp),
+            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        )
+
+        // Product Price
+        Text(
+            text = productPrice,
+            modifier = Modifier.padding(top = 4.dp),
+            style = TextStyle(fontSize = 14.sp)
+        )
+    }
 }
 
 @Composable
